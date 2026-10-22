@@ -1,0 +1,12 @@
+# Obskyra
+
+> Personal homepage of Obskyra, a streamer and vlogger from the United Kingdom.
+
+## Website
+- [Homepage](https://obskyra.stream/): Profile and platform links.
+- [Privacy](https://obskyra.stream/privacy.html): Browser preferences, hosting and external services.
+
+## Platforms
+- [Twitch](https://twitch.tv/obskyra): Streams.
+- [YouTube](https://youtube.com/@0bskra): Videos and vlogs.
+- [TikTok](https://www.tiktok.com/@obskyra_): Short clips.
