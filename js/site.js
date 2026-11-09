@@ -4,7 +4,7 @@ const saver=document.querySelector('.screensaver'),logo=document.querySelector('
 const bgChoice=document.querySelector('#background-choice'),saverChoice=document.querySelector('#saver-choice'),preview=document.querySelector('.preview-saver'),canvas=document.querySelector('.star-canvas'),ctx=canvas.getContext('2d');
 let saverMode='bounce',stars=[],starWidth=0,starHeight=0;
 function savePreferences(){try{localStorage.setItem('obskyra-desktop',JSON.stringify({background:bgChoice.value,saver:saverMode}));}catch{}}
-try{const saved=JSON.parse(localStorage.getItem('obskyra-desktop')||'{}');if(['charcoal','hills','matrix'].includes(saved.background))bgChoice.value=saved.background;if(['bounce','stars'].includes(saved.saver))saverChoice.value=saved.saver;}catch{}
+try{const saved=JSON.parse(localStorage.getItem('obskyra-desktop')||'{}');if(['video','charcoal','hills','matrix'].includes(saved.background))bgChoice.value=saved.background;if(['bounce','stars'].includes(saved.saver))saverChoice.value=saved.saver;}catch{}
 saverMode=saverChoice.value;document.body.dataset.background=bgChoice.value;
 bgChoice.addEventListener('change',()=>{document.body.dataset.background=bgChoice.value;savePreferences();});
 saverChoice.addEventListener('change',()=>{saverMode=saverChoice.value;savePreferences();});

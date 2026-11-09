@@ -1,4 +1,4 @@
-/* Holographic "PLAYED" sticker on the photo card.
+/* Play counter for the holographic "PLAYED" sticker on the photo card.
    Counts one play per browser tab session, then shows the running total.
    If the counter can't be reached the sticker simply stays hidden. */
 (() => {
@@ -25,29 +25,5 @@
     })
     .catch(() => { sticker.hidden = true; });
 
-  // Foil follows the pointer on devices with a mouse. Touch screens get a
-  // slow automatic shimmer from CSS instead, and reduced-motion users get a
-  // still sticker.
-  const art = document.querySelector('.art');
-  const canHover = window.matchMedia('(hover: hover) and (pointer: fine)');
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-  if (!art) return;
-  let frame = 0;
-  art.addEventListener('pointermove', (event) => {
-    if (!canHover.matches || reduced.matches || sticker.hidden) return;
-    cancelAnimationFrame(frame);
-    frame = requestAnimationFrame(() => {
-      const box = art.getBoundingClientRect();
-      const x = Math.min(1, Math.max(0, (event.clientX - box.left) / box.width));
-      const y = Math.min(1, Math.max(0, (event.clientY - box.top) / box.height));
-      sticker.style.setProperty('--holo-x', Math.round(x * 100) + '%');
-      sticker.style.setProperty('--holo-y', Math.round(y * 100) + '%');
-      sticker.style.setProperty('--holo-shine', Math.round(100 - x * 100) + '%');
-    });
-  });
-  art.addEventListener('pointerleave', () => {
-    sticker.style.removeProperty('--holo-x');
-    sticker.style.removeProperty('--holo-y');
-    sticker.style.removeProperty('--holo-shine');
-  });
+  // The foil movement and card tilt live in js/effects.js.
 })();
