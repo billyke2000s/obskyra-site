@@ -42,6 +42,23 @@
         return { text, typed, rest, line };
       });
 
+      // Size the cursor to the capital letters of whichever font is actually in
+      // use (Impact on most computers, Anton on phones), measured with a canvas.
+      const fitCaret = () => {
+        try {
+          const style = getComputedStyle(title);
+          const size = parseFloat(style.fontSize);
+          const ctx = document.createElement('canvas').getContext('2d');
+          ctx.font = `${style.fontWeight} ${size}px ${style.fontFamily}`;
+          const m = ctx.measureText('D');
+          if (!m.fontBoundingBoxDescent || !m.actualBoundingBoxAscent) return;
+          title.style.setProperty('--caret-bottom', (m.fontBoundingBoxDescent / size).toFixed(3) + 'em');
+          title.style.setProperty('--caret-height', (m.actualBoundingBoxAscent / size).toFixed(3) + 'em');
+        } catch (_) {}
+      };
+      fitCaret();
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitCaret);
+
       let lineIndex = 0;
       let charIndex = 0;
       parts[0].line.insertBefore(caret, parts[0].rest);
@@ -111,6 +128,11 @@
     const sync = () => {
       const wanted = document.body.dataset.background === 'video' && !reduced.matches && !saveData && !document.hidden;
       if (wanted) {
+        if (!video.getAttribute('src')) {
+          // Phones get a smaller file (about 0.5 MB instead of 2 MB).
+          const small = window.matchMedia('(max-width: 700px)').matches;
+          video.src = (small && video.dataset.srcSmall) || video.dataset.src;
+        }
         if (video.preload !== 'auto') video.preload = 'auto';
         const playing = video.play();
         if (playing && playing.catch) playing.catch(() => {}); // autoplay blocked: poster stays
