@@ -3,6 +3,8 @@
    2. The photo card tilts in 3D toward the mouse, and the holographic
       PLAYED sticker's foil shifts with it.
    3. The background video plays only while "Video" is the chosen background.
+   4. The browser tab title types "@obskyra" on a loop (after the first interaction).
+   5. Sparkles trail the mouse on desktop.
    Everything respects "reduce motion"; tilt is mouse-only (touch screens get
    the sticker's automatic shimmer from CSS instead). */
 (() => {
@@ -14,6 +16,7 @@
   if (title && !reduced.matches) {
     // Read the lines from the existing markup: "OBSKYRA<span>ON RECORD.</span>"
     const second = title.querySelector('span');
+    const badge = title.querySelector('.verified-badge'); // kept and re-attached after typing
     const lines = [
       (title.firstChild && title.firstChild.nodeType === 3 ? title.firstChild.textContent : '').trim(),
       second ? second.textContent.trim() : ''
@@ -56,6 +59,11 @@
           title.style.setProperty('--caret-height', (m.actualBoundingBoxAscent / size).toFixed(3) + 'em');
         } catch (_) {}
       };
+      if (badge) {
+        badge.classList.add('is-waiting');
+        parts[0].line.append(badge);
+      }
+
       fitCaret();
       if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitCaret);
 
@@ -69,6 +77,7 @@
         part.typed.textContent = part.text.slice(0, charIndex);
         part.rest.textContent = part.text.slice(charIndex);
         if (charIndex >= part.text.length) {
+          if (lineIndex === 0 && badge) badge.classList.remove('is-waiting'); // badge pops in after the name
           lineIndex += 1;
           charIndex = 0;
           if (lineIndex >= parts.length) return; // done; caret keeps blinking at the end
@@ -144,5 +153,102 @@
     document.addEventListener('visibilitychange', sync);
     reduced.addEventListener('change', sync);
     sync();
+  }
+
+  /* ---------- 4. Typing browser-tab title ---------- */
+  // Starts only after the visitor interacts, so search engines and link
+  // previews always see the real page title.
+  const realTitle = document.title;
+  const handle = '@obskyra';
+  let titleStarted = false;
+  const startTitle = () => {
+    if (titleStarted || reduced.matches) return;
+    titleStarted = true;
+    let n = 1;
+    let dir = 1;
+    const tick = () => {
+      if (document.hidden) { document.title = realTitle; setTimeout(tick, 1000); return; }
+      document.title = handle.slice(0, n) || '@';
+      let wait = 180;
+      if (dir > 0 && n >= handle.length) { dir = -1; wait = 2600; }      // hold the full name
+      else if (dir < 0 && n <= 1) { dir = 1; wait = 600; }              // short pause, retype
+      n += dir;
+      setTimeout(tick, wait);
+    };
+    tick();
+  };
+  ['pointermove', 'pointerdown', 'keydown', 'scroll', 'touchstart'].forEach((type) =>
+    window.addEventListener(type, startTitle, { once: true, passive: true }));
+
+  /* ---------- 5. Sparkle cursor trail ---------- */
+  if (finePointer.matches && !reduced.matches) {
+    const canvas = document.createElement('canvas');
+    canvas.className = 'sparkle-layer';
+    canvas.setAttribute('aria-hidden', 'true');
+    document.body.append(canvas);
+    const ctx = canvas.getContext('2d');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const colors = ['#ffffff', '#ffd6e8', '#cfe9ff', '#fff3c8', '#e2d4ff'];
+    const sparks = [];
+    let running = false;
+    let last = 0;
+
+    const resize = () => {
+      canvas.width = Math.round(innerWidth * dpr);
+      canvas.height = Math.round(innerHeight * dpr);
+      canvas.style.width = innerWidth + 'px';
+      canvas.style.height = innerHeight + 'px';
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    const star = (x, y, r, rot) => {
+      // four-pointed twinkle
+      ctx.beginPath();
+      for (let i = 0; i < 8; i += 1) {
+        const a = rot + (i * Math.PI) / 4;
+        const d = i % 2 === 0 ? r : r * 0.28;
+        ctx.lineTo(x + Math.cos(a) * d, y + Math.sin(a) * d);
+      }
+      ctx.closePath();
+      ctx.fill();
+    };
+
+    const frame = (now) => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = sparks.length - 1; i >= 0; i -= 1) {
+        const s = sparks[i];
+        const age = (now - s.born) / s.life;
+        if (age >= 1) { sparks.splice(i, 1); continue; }
+        s.x += s.vx; s.y += s.vy; s.vy += 0.03; s.rot += s.spin;
+        ctx.globalAlpha = (1 - age) * 0.95;
+        ctx.fillStyle = s.color;
+        star(s.x * dpr, s.y * dpr, s.size * dpr * (1 - age * 0.5), s.rot);
+      }
+      ctx.globalAlpha = 1;
+      if (sparks.length) requestAnimationFrame(frame);
+      else running = false;
+    };
+
+    window.addEventListener('pointermove', (event) => {
+      if (event.pointerType !== 'mouse' || reduced.matches) return;
+      const now = performance.now();
+      if (now - last < 22) return; // a few sparkles per second, not hundreds
+      last = now;
+      if (sparks.length > 60) sparks.shift();
+      sparks.push({
+        x: event.clientX + (Math.random() - 0.5) * 8,
+        y: event.clientY + (Math.random() - 0.5) * 8,
+        vx: (Math.random() - 0.5) * 0.6,
+        vy: Math.random() * 0.4 + 0.1,
+        size: Math.random() * 4 + 4,
+        rot: Math.random() * Math.PI,
+        spin: (Math.random() - 0.5) * 0.08,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        born: now,
+        life: 650 + Math.random() * 450
+      });
+      if (!running) { running = true; requestAnimationFrame(frame); }
+    }, { passive: true });
   }
 })();
